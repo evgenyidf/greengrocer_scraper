@@ -1,0 +1,7 @@
+pandas
+numpy
+matplotlib
+seaborn
+bs4
+openpyxl
+XlsxWriter
