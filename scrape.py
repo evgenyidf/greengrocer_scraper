@@ -5,9 +5,10 @@ from pathlib import Path
 # import matplotlib.pyplot as plt
 # import seaborn as sns
 import csv
+import json
 
 from urllib.request import urlopen
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, element
 from bidi.algorithm import get_display
 
 DATA_PATH = '/Users/evgenys/GIT/kfar_scrape/DATA'
@@ -75,6 +76,16 @@ URLS = {
         'המחלבה': "https://www.alehonline.co.il/cat/110/dairy",
         'הבד': "https://www.alehonline.co.il/cat/111/olive-oil",
         'המזווה': "https://www.alehonline.co.il/cat/112/pantry"
+    },
+    'noyhasade': {
+        'פירות': 'https://noyhasade.co.il/product-category/%d7%94%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
+        'ירקות': 'https://noyhasade.co.il/product-category/%d7%94%d7%99%d7%a8%d7%a7%d7%95%d7%aa-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
+        'עשבי תיבול': 'https://noyhasade.co.il/product-category/%d7%a2%d7%a9%d7%91%d7%99-%d7%aa%d7%99%d7%91%d7%95%d7%9c/',
+        'מהדרין': 'https://noyhasade.co.il/product-category/%d7%a2%d7%a9%d7%91%d7%99-%d7%aa%d7%99%d7%91%d7%95%d7%9c-%d7%9e%d7%94%d7%93%d7%a8%d7%99%d7%9f/',
+        'המיוחדים': 'https://noyhasade.co.il/product-category/%d7%94%d7%9e%d7%99%d7%95%d7%97%d7%93%d7%99%d7%9d-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
+        'מגשי אירוח': 'https://noyhasade.co.il/product-category/%d7%9e%d7%92%d7%a9%d7%99-%d7%9e%d7%a1%d7%99%d7%91%d7%95%d7%aa/',
+        'המעדניה': 'https://noyhasade.co.il/product-category/%d7%9e%d7%a2%d7%93%d7%a0%d7%99%d7%94/',
+        'שטראוס': 'https://noyhasade.co.il/product-category/strauss/'
     }
 }
 
@@ -128,8 +139,8 @@ def getMoshavnikScraped(category, URL, path=DATA_PATH):
 
         row = {
             'Product_ID': product_id,
-            'Product_Name': product_name,
-            'Description': product_name_extra,
+            'Product_Name': get_display(product_name),
+            'Description': get_display(product_name_extra),
             'Price': product_price,
             'Price_Type': product_price_type,
             'New_Product': isNew,
@@ -192,6 +203,98 @@ def getAlehonlineScraped(category, URL, path=DATA_PATH):
     csvFile.close()
 
 
+def getNoyhasadeScraped(category, URL, path=DATA_PATH):
+    csvFile = open("{}/noyhasade/{}.csv".format(path, category), mode='w')
+
+    writer = csv.DictWriter(csvFile, fieldnames=CSV_FIELD_NAMES)
+    writer.writeheader()
+
+    soup = BeautifulSoup(urlopen(URL), 'lxml')
+    all_products = soup.find_all('li', {"class": 'product'})
+
+    for item in all_products:
+        isNew = 0
+        isSale = 0
+        product_name_extra = ''
+        product_id = item.findAll('product_archive')[0][':product_id']
+
+        try:
+            if type(item.findAll('h2', {"class": "woocommerce-loop-product__title"})[0].contents[0]) is element.NavigableString:
+                product_name = item.findAll('h2', {"class": "woocommerce-loop-product__title"})[0].contents[0]
+        except:
+            product_name = item.findAll('h2')[0].contents[0]
+            product_name_extra = item.findAll('p')[0].contents[0]
+
+        try:
+            product_name_extra = item.findAll('div', {"class": "description"})[0].findAll('p')[0].contents[0]
+        except:
+            None
+
+        price_data = json.loads(item.findAll('product_archive')[0][':product_variations'])
+        # products that doesn't have few units
+        if type(price_data) is str:
+            search = re.search('^([0-9.]+) .*class=.*\>(.*)\<.*', price_data)
+            # when search is problematic and we have deleted price with new one
+            try:
+                product_price = search.group(1)
+            except:
+                search = re.search('.*span>([0-9.]+)<\/span><\/del>.*span>([0-9.]+).*', price_data)
+                product_price = search.group(2)
+                isSale = 1
+                product_price_type = ''
+            if search.group(2) is '':
+                product_price_type = "לק״ג"
+            else:
+                product_price_type = search.group(2)
+        # products that have few units
+        elif type(price_data) is dict:
+            for key in price_data:
+                try:
+                    search = re.search('.*span\>([0-9.]+).*for_kilo.*>(.*)\<.*', price_data[key]['display_price'])
+                    product_price = search.group(1)
+                    product_price_type = search.group(2)
+                except:
+                    product_price = price_data[key]['price']
+                    product_price_type = price_data[key]['name']
+                break
+
+        try:
+            if type(item.findAll('h2', {"class": "woocommerce-loop-product__title"})[0].contents[0]) is element.Tag:
+                product_name = item.findAll('h2', {"class": "woocommerce-loop-product__title"})[0].contents[0]['title']
+                product_image_url = item.findAll('div', {"class": "thumb"})[0].contents[0].findAll()[0]['src']
+            else:
+                product_image_url = item.findAll('div', {"class": "thumb"})[0].contents[0]['src']
+        except:
+            product_name = item.findAll('h2')[0].contents[0]
+            product_name_extra = item.findAll('p')[0].contents[0]
+            try:
+                product_image_url = item.findAll('div', {"class": "thumb"})[0].contents[0]['src']
+            except:
+                product_image_url = item.findAll('div', {"class": "thumb"})[0].contents[0].findAll('img')[0]['src']
+
+        print("id: {}, name: '{}', description: {}, price: '{}', type: '{}', {}, {}, {}".format(
+            product_id,
+            get_display(product_name),
+            get_display(product_name_extra),
+            get_display(str(product_price)),
+            get_display(product_price_type),
+            isNew, isSale, product_image_url))
+
+        row = {
+            'Product_ID': product_id,
+            'Product_Name': product_name,
+            'Description': product_name_extra,
+            'Price': product_price,
+            'Price_Type': product_price_type,
+            'New_Product': isNew,
+            'Sale': isSale,
+            'Image_URL': product_image_url}
+
+        writer.writerow(row)
+
+    csvFile.close()
+
+
 def writeExcel(siteName, path=DATA_PATH):
     writer = pd.ExcelWriter("{}/{}/all_{}.xlsx".format(path, siteName, siteName), engine='xlsxwriter')
     for key in URLS[siteName]:
@@ -206,17 +309,17 @@ if __name__ == "__main__":
     for key in URLS:
         Path("{}/{}".format(DATA_PATH, key)).mkdir(parents=True, exist_ok=True)
 
-    # siteURLS = URLS['moshavnik']
-    # for key in siteURLS:
-    #     getMoshavnikScraped(key, siteURLS[key])
-    # writeExcel("moshavnik", DATA_PATH)
+    siteURLS = URLS['moshavnik']
+    for key in siteURLS:
+        getMoshavnikScraped(key, siteURLS[key])
+    writeExcel("moshavnik", DATA_PATH)
 
     siteURLS = URLS['alehonline']
     for key in siteURLS:
         getAlehonlineScraped(key, siteURLS[key])
     writeExcel("alehonline", DATA_PATH)
 
-    siteURLS = URLS['alehonline']
+    siteURLS = URLS['noyhasade']
     for key in siteURLS:
-        getAlehonlineScraped(key, siteURLS[key])
-    writeExcel("alehonline", DATA_PATH)
+        getNoyhasadeScraped(key, siteURLS[key])
+    writeExcel("noyhasade", DATA_PATH)
