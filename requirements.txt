@@ -5,3 +5,5 @@ seaborn
 bs4
 openpyxl
 XlsxWriter
+wordcloud
+selenium

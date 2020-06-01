@@ -6,12 +6,22 @@ from pathlib import Path
 # import seaborn as sns
 import csv
 import json
+import time
+import pickle
 
 from urllib.request import urlopen
 from bs4 import BeautifulSoup, element
 from bidi.algorithm import get_display
 
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+
+saved_price_data = {}
+WEBDRIVER_PATH = r'/Users/evgenys/GIT/kfar_scrape/chromedriver'
 DATA_PATH = '/Users/evgenys/GIT/kfar_scrape/DATA'
+browser = webdriver.Chrome(WEBDRIVER_PATH)
+NO_OF_PAGEDOWNS = 10
+
 CSV_FIELD_NAMES = [
     'Product_ID',
     'Product_Name',
@@ -20,7 +30,8 @@ CSV_FIELD_NAMES = [
     'Price_Type',
     'New_Product',
     'Sale',
-    'Image_URL']
+    'Image_URL',
+    'Prace_Changed']
 
 URLS = {
     'moshavnik': {
@@ -89,9 +100,6 @@ URLS = {
     }
 }
 
-# soup = BeautifulSoup(re.sub(rx, "", str(rawSoup)))
-# print(soup.title.contents[0][::-1])
-
 
 def getMoshavnikScraped(category, URL, path=DATA_PATH):
 
@@ -145,7 +153,8 @@ def getMoshavnikScraped(category, URL, path=DATA_PATH):
             'Price_Type': product_price_type,
             'New_Product': isNew,
             'Sale': isSale,
-            'Image_URL': product_image_url}
+            'Image_URL': product_image_url,
+            'Prace_Changed': ''}
 
         writer.writerow(row)
     csvFile.close()
@@ -197,7 +206,8 @@ def getAlehonlineScraped(category, URL, path=DATA_PATH):
             'Price_Type': product_price_type,
             'New_Product': isNew,
             'Sale': isSale,
-            'Image_URL': product_image_url}
+            'Image_URL': product_image_url,
+            'Prace_Changed': ''}
 
         writer.writerow(row)
     csvFile.close()
@@ -288,10 +298,86 @@ def getNoyhasadeScraped(category, URL, path=DATA_PATH):
             'Price_Type': product_price_type,
             'New_Product': isNew,
             'Sale': isSale,
-            'Image_URL': product_image_url}
+            'Image_URL': product_image_url,
+            'Prace_Changed': ''}
 
         writer.writerow(row)
+    csvFile.close()
 
+
+def getCarmellaScraped(category, URL, path=DATA_PATH):
+    global NO_OF_PAGEDOWNS
+    global saved_price_data
+
+    no_of_pd = 70
+    csvFile = open("{}/carmella/{}.csv".format(path, category), mode='w')
+
+    writer = csv.DictWriter(csvFile, fieldnames=CSV_FIELD_NAMES)
+    writer.writeheader()
+
+    # download whole page
+    browser.get(URL)
+    time.sleep(1)
+    elem = browser.find_element_by_tag_name("body")
+    while no_of_pd:
+        elem.send_keys(Keys.PAGE_DOWN)
+        time.sleep(1)
+        no_of_pd -= 1
+
+    soup = BeautifulSoup(browser.page_source, "html.parser")
+    all_products = soup.find_all('div', {"class": 'product_wrap'})
+
+    for item in all_products:
+        product_id = item['data-product-id']
+        product_block = item.find_all('div', {"class": 'prod_bottom'})[0]
+        product_name = product_block.find_all('h3', {"class": 'pr_title'})[0].contents[0]
+        product_price = product_block.find_all('span', {"class": 'pr_price'})[0].contents[0].strip()
+        product_price_type = product_block.find_all('span', {"class": 'pr_price_kilo'})[0].contents[0].replace('/', '').strip()
+
+        isSale = 0
+        isNew = 0
+        if len(product_block.find_all('span', {"class": 'pr_title_sale'})) or len(product_block.find_all('span', {"class": 'pr_price_old'})):
+            isSale = 1
+
+        product_name_extra = ''
+        if len(product_block.find_all('span', {"class": 'pr_title_note'})):
+            product_name_extra = product_block.find_all('span', {"class": 'pr_title_note'})[0].contents[0]
+
+        product_image_url = ''
+        try:
+            if len(item.find_all('div', {"class": 'product_img'})):
+                product_image_url = item.find_all('div', {"class": 'product_img'})[0].find_all('img')[0]['data-src']
+        except:
+            None
+
+        product_cat_name = item.find_parents('div', {"class": 'subcat_with_items'})[0]['name']
+
+        product_old_price = ''
+        try:
+            if saved_price_data[product_id] != product_price:
+                product_old_price = saved_price_data[product_id]
+        except:
+            None
+
+        print("name: '{}', price: '{}', type: '{}'".format(
+            get_display(product_name),
+            get_display(product_cat_name),
+            get_display(product_price),
+            get_display(product_price_type)))
+
+        row = {
+            'Product_ID': product_id,
+            'Product_Name': product_name,
+            'Description': product_name_extra,
+            'Price': product_price,
+            'Price_Type': product_price_type,
+            'New_Product': isNew,
+            'Sale': isSale,
+            'Image_URL': product_image_url,
+            'Prace_Changed': product_old_price}
+
+        writer.writerow(row)
+        saved_price_data[product_id] = product_price
     csvFile.close()
 
 
@@ -304,8 +390,23 @@ def writeExcel(siteName, path=DATA_PATH):
     writer.close()
 
 
-if __name__ == "__main__":
+def writePriceData(siteName, path=DATA_PATH):
+    global saved_price_data
+    with open("{}/{}/old_data.pickle".format(path, siteName), 'wb') as file:
+        pickle.dump(saved_price_data, file)
+    saved_price_data = {}
 
+
+def readPriceData(siteName, path=DATA_PATH):
+    global saved_price_data
+    try:
+        with open("{}/{}/old_data.pickle".format(path, siteName), 'rb') as file:
+            saved_price_data = pickle.load(file)
+    except:
+        saved_price_data = {}
+
+
+if __name__ == "__main__":
     for key in URLS:
         Path("{}/{}".format(DATA_PATH, key)).mkdir(parents=True, exist_ok=True)
 
@@ -323,3 +424,13 @@ if __name__ == "__main__":
     for key in siteURLS:
         getNoyhasadeScraped(key, siteURLS[key])
     writeExcel("noyhasade", DATA_PATH)
+
+    siteURLS = URLS['carmella']
+    readPriceData('carmella')
+    for key in siteURLS:
+        print('Starting: {}'.format(key))
+        getCarmellaScraped(key, siteURLS[key])
+    writePriceData('carmella')
+    writeExcel('carmella', DATA_PATH)
+
+    browser.close()
