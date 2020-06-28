@@ -1,37 +1,42 @@
+#!/usr/bin/env python3
 import pandas as pd
 import re
 from pathlib import Path
+
+from bidi.algorithm import get_display
 # import numpy as np
 # import matplotlib.pyplot as plt
 # import seaborn as sns
 import csv
 import json
 import time
-import pickle
+
+import atexit
 
 from urllib.request import urlopen
 from bs4 import BeautifulSoup, element
-from bidi.algorithm import get_display
+from bekfar.products import Product as prod
+from bekfar import utils
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 
-saved_price_data = {}
-WEBDRIVER_PATH = r'/Users/evgenys/GIT/kfar_scrape/chromedriver'
-DATA_PATH = '/Users/evgenys/GIT/kfar_scrape/DATA'
+OLD_DATA = {}
+WEBDRIVER_PATH = r'./chromedriver'
+DATA_PATH = './DATA'
 browser = webdriver.Chrome(WEBDRIVER_PATH)
-NO_OF_PAGEDOWNS = 10
 
-CSV_FIELD_NAMES = [
-    'Product_ID',
-    'Product_Name',
-    'Description',
-    'Price',
-    'Price_Type',
-    'New_Product',
-    'Sale',
-    'Image_URL',
-    'Prace_Changed']
+
+# CSV_FIELD_NAMES = [
+#     'Product_ID',
+#     'Product_Name',
+#     'Description',
+#     'Price',
+#     'Price_Type',
+#     'New_Product',
+#     'Sale',
+#     'Image_URL',
+#     'Prace_Changed']
 
 URLS = {
     'moshavnik': {
@@ -136,9 +141,9 @@ def getMoshavnikScraped(category, URL, path=DATA_PATH):
         except:
             isNew = 0
         try:
-            isSale = int(item.findAll('div', {"class": "saleInner"})[0].findAll('img')[0]['src'].endswith('icons03.png'))
+            isForSale = int(item.findAll('div', {"class": "saleInner"})[0].findAll('img')[0]['src'].endswith('icons03.png'))
         except:
-            isSale = 0
+            isForSale = 0
 
         print("name: '{}', price: '{}', type: '{}'".format(
             get_display(product_name),
@@ -152,7 +157,7 @@ def getMoshavnikScraped(category, URL, path=DATA_PATH):
             'Price': product_price,
             'Price_Type': product_price_type,
             'New_Product': isNew,
-            'Sale': isSale,
+            'Sale': isForSale,
             'Image_URL': product_image_url,
             'Prace_Changed': ''}
 
@@ -189,9 +194,9 @@ def getAlehonlineScraped(category, URL, path=DATA_PATH):
         except:
             isNew = 0
         try:
-            isSale = int(item.findAll('div', {"class": "saleInner"})[0].findAll('img')[0]['src'].endswith('icons03.png'))
+            isForSale = int(item.findAll('div', {"class": "saleInner"})[0].findAll('img')[0]['src'].endswith('icons03.png'))
         except:
-            isSale = 0
+            isForSale = 0
 
         print("name: '{}', price: '{}', type: '{}'".format(
             get_display(product_name),
@@ -205,7 +210,7 @@ def getAlehonlineScraped(category, URL, path=DATA_PATH):
             'Price': product_price,
             'Price_Type': product_price_type,
             'New_Product': isNew,
-            'Sale': isSale,
+            'Sale': isForSale,
             'Image_URL': product_image_url,
             'Prace_Changed': ''}
 
@@ -214,8 +219,10 @@ def getAlehonlineScraped(category, URL, path=DATA_PATH):
 
 
 def getNoyhasadeScraped(category, URL, path=DATA_PATH):
-    csvFile = open("{}/noyhasade/{}.csv".format(path, category), mode='w')
+    global NO_OF_PAGEDOWNS
+    global OLD_DATA
 
+    csvFile = open("{}/noyhasade/{}.csv".format(path, category), mode='w')
     writer = csv.DictWriter(csvFile, fieldnames=CSV_FIELD_NAMES)
     writer.writeheader()
 
@@ -224,7 +231,7 @@ def getNoyhasadeScraped(category, URL, path=DATA_PATH):
 
     for item in all_products:
         isNew = 0
-        isSale = 0
+        isForSale = 0
         product_name_extra = ''
         product_id = item.findAll('product_archive')[0][':product_id']
 
@@ -250,7 +257,7 @@ def getNoyhasadeScraped(category, URL, path=DATA_PATH):
             except:
                 search = re.search('.*span>([0-9.]+)<\/span><\/del>.*span>([0-9.]+).*', price_data)
                 product_price = search.group(2)
-                isSale = 1
+                isForSale = 1
                 product_price_type = ''
             if search.group(2) is '':
                 product_price_type = "לק״ג"
@@ -288,7 +295,7 @@ def getNoyhasadeScraped(category, URL, path=DATA_PATH):
             get_display(product_name_extra),
             get_display(str(product_price)),
             get_display(product_price_type),
-            isNew, isSale, product_image_url))
+            isNew, isForSale, product_image_url))
 
         row = {
             'Product_ID': product_id,
@@ -297,7 +304,7 @@ def getNoyhasadeScraped(category, URL, path=DATA_PATH):
             'Price': product_price,
             'Price_Type': product_price_type,
             'New_Product': isNew,
-            'Sale': isSale,
+            'Sale': isForSale,
             'Image_URL': product_image_url,
             'Prace_Changed': ''}
 
@@ -306,131 +313,67 @@ def getNoyhasadeScraped(category, URL, path=DATA_PATH):
 
 
 def getCarmellaScraped(category, URL, path=DATA_PATH):
-    global NO_OF_PAGEDOWNS
-    global saved_price_data
-
-    no_of_pd = 70
-    csvFile = open("{}/carmella/{}.csv".format(path, category), mode='w')
-
-    writer = csv.DictWriter(csvFile, fieldnames=CSV_FIELD_NAMES)
-    writer.writeheader()
-
-    # download whole page
-    browser.get(URL)
-    time.sleep(1)
-    elem = browser.find_element_by_tag_name("body")
-    while no_of_pd:
-        elem.send_keys(Keys.PAGE_DOWN)
-        time.sleep(1)
-        no_of_pd -= 1
-
-    soup = BeautifulSoup(browser.page_source, "html.parser")
-    all_products = soup.find_all('div', {"class": 'product_wrap'})
+    writer = utils.openCsvWrite('carmella', path)
+    all_products = utils.browseAllProducts(URL, browser)
 
     for item in all_products:
-        product_id = item['data-product-id']
+        product = prod(item['data-product-id'])
         product_block = item.find_all('div', {"class": 'prod_bottom'})[0]
-        product_name = product_block.find_all('h3', {"class": 'pr_title'})[0].contents[0]
-        product_price = product_block.find_all('span', {"class": 'pr_price'})[0].contents[0].strip()
-        product_price_type = product_block.find_all('span', {"class": 'pr_price_kilo'})[0].contents[0].replace('/', '').strip()
+        product.name = product_block.find_all('h3', {"class": 'pr_title'})[0].contents[0]
+        product.category = category
+        product.sub_category = item.find_parents('div', {"class": 'subcat_with_items'})[0]['name']
+        product.price = product_block.find_all('span', {"class": 'pr_price'})[0].contents[0].strip()
+        product.unit_type = product_block.find_all('span', {"class": 'pr_price_kilo'})[0].contents[0].replace('/', '').strip()
 
-        isSale = 0
-        isNew = 0
-        if len(product_block.find_all('span', {"class": 'pr_title_sale'})) or len(product_block.find_all('span', {"class": 'pr_price_old'})):
-            isSale = 1
+        if (len(product_block.find_all('span', {"class": 'pr_title_sale'})) or
+                len(product_block.find_all('span', {"class": 'pr_price_old'}))):
+            product.isForSale = True
 
-        product_name_extra = ''
         if len(product_block.find_all('span', {"class": 'pr_title_note'})):
-            product_name_extra = product_block.find_all('span', {"class": 'pr_title_note'})[0].contents[0]
+            product.description = product_block.find_all('span', {"class": 'pr_title_note'})[0].contents[0]
 
-        product_image_url = ''
-        try:
-            if len(item.find_all('div', {"class": 'product_img'})):
-                product_image_url = item.find_all('div', {"class": 'product_img'})[0].find_all('img')[0]['data-src']
-        except:
-            None
+        if len(item.find_all('div', {"class": 'product_img'})):
+                product.image = item.find_all('div', {"class": 'product_img'})[0].find_all('img')[0]['data-src']
 
-        product_cat_name = item.find_parents('div', {"class": 'subcat_with_items'})[0]['name']
+        if product.id in OLD_DATA and OLD_DATA[product.id] != product.price:
+            product.old_price = OLD_DATA[product.id]
 
-        product_old_price = ''
-        try:
-            if saved_price_data[product_id] != product_price:
-                product_old_price = saved_price_data[product_id]
-        except:
-            None
-
-        print("name: '{}', price: '{}', type: '{}'".format(
-            get_display(product_name),
-            get_display(product_cat_name),
-            get_display(product_price),
-            get_display(product_price_type)))
-
-        row = {
-            'Product_ID': product_id,
-            'Product_Name': product_name,
-            'Description': product_name_extra,
-            'Price': product_price,
-            'Price_Type': product_price_type,
-            'New_Product': isNew,
-            'Sale': isSale,
-            'Image_URL': product_image_url,
-            'Prace_Changed': product_old_price}
-
-        writer.writerow(row)
-        saved_price_data[product_id] = product_price
-    csvFile.close()
+        print(product.to_csv())
+        writer.writerow(product.to_csv())
+    # writer.close()
 
 
-def writeExcel(siteName, path=DATA_PATH):
-    writer = pd.ExcelWriter("{}/{}/all_{}.xlsx".format(path, siteName, siteName), engine='xlsxwriter')
-    for key in URLS[siteName]:
-        df = pd.read_csv("{}/{}/{}.csv".format(path, siteName, key))
-        df.set_index('Product_ID', inplace=True)
-        df.to_excel(writer, sheet_name=key)
-    writer.close()
-
-
-def writePriceData(siteName, path=DATA_PATH):
-    global saved_price_data
-    with open("{}/{}/old_data.pickle".format(path, siteName), 'wb') as file:
-        pickle.dump(saved_price_data, file)
-    saved_price_data = {}
-
-
-def readPriceData(siteName, path=DATA_PATH):
-    global saved_price_data
-    try:
-        with open("{}/{}/old_data.pickle".format(path, siteName), 'rb') as file:
-            saved_price_data = pickle.load(file)
-    except:
-        saved_price_data = {}
+def closeAll():
+    browser.close()
 
 
 if __name__ == "__main__":
-    for key in URLS:
-        Path("{}/{}".format(DATA_PATH, key)).mkdir(parents=True, exist_ok=True)
-
-    siteURLS = URLS['moshavnik']
-    for key in siteURLS:
-        getMoshavnikScraped(key, siteURLS[key])
-    writeExcel("moshavnik", DATA_PATH)
-
-    siteURLS = URLS['alehonline']
-    for key in siteURLS:
-        getAlehonlineScraped(key, siteURLS[key])
-    writeExcel("alehonline", DATA_PATH)
-
-    siteURLS = URLS['noyhasade']
-    for key in siteURLS:
-        getNoyhasadeScraped(key, siteURLS[key])
-    writeExcel("noyhasade", DATA_PATH)
+    atexit.register(closeAll)
 
     siteURLS = URLS['carmella']
-    readPriceData('carmella')
-    for key in siteURLS:
-        print('Starting: {}'.format(key))
-        getCarmellaScraped(key, siteURLS[key])
-    writePriceData('carmella')
-    writeExcel('carmella', DATA_PATH)
+    OLD_DATA = utils.readSavedData('carmella', path=DATA_PATH)
+    for category in siteURLS:
+        print('Starting: {}'.format(category))
+        getCarmellaScraped(category, siteURLS[category])
+    # utils.writeExcel('carmella', DATA_PATH)
+    # utils.writeSavedData('carmella', path=DATA_PATH)
 
-    browser.close()
+    # for key in URLS:
+    #     Path("{}/{}".format(DATA_PATH, key)).mkdir(parents=True, exist_ok=True)
+
+    # siteURLS = URLS['moshavnik']
+    # for key in siteURLS:
+    #     getMoshavnikScraped(key, siteURLS[key])
+    # writeExcel("moshavnik", DATA_PATH)
+
+    # siteURLS = URLS['alehonline']
+    # for key in siteURLS:
+    #     getAlehonlineScraped(key, siteURLS[key])
+    # writeExcel("alehonline", DATA_PATH)
+
+    # siteURLS = URLS['noyhasade']
+    # for key in siteURLS:
+    #     getNoyhasadeScraped(key, siteURLS[key])
+    # writeExcel("noyhasade", DATA_PATH)
+
+
