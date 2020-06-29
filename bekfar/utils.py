@@ -8,11 +8,12 @@ import time
 import csv
 from bekfar.products import Product
 import pickle
+from datetime import datetime
 
-NO_OF_PAGEDOWNS = 70
+NO_OF_PAGEDOWNS = 50
 
 
-def browseAllProducts(URL, browser):
+def browseWithAutoLoading(URL, browser):
     no_of_pd = NO_OF_PAGEDOWNS
     browser.get(URL)
     time.sleep(1)
@@ -23,7 +24,7 @@ def browseAllProducts(URL, browser):
         no_of_pd -= 1
 
     soup = BeautifulSoup(browser.page_source, "html.parser")
-    return soup.find_all('div', {"class": 'product_wrap'})
+    return soup
 
 
 def openCsvWrite(website, path):
@@ -40,13 +41,29 @@ def openCsvWrite(website, path):
 #         df.set_index('Product_ID', inplace=True)
 #         df.to_excel(writer, sheet_name=key)
 #     writer.close()
+def writeExcel(path, productList):
+    date = datetime.now().strftime("%d-%m-%Y")
+    writer = pd.ExcelWriter("{}/all_prices_{}.xlsx".format(path,date), engine='xlsxwriter')
+    for sitename in productList:
+        products = productList[sitename]
+        df = pd.DataFrame.from_records([p.to_dict() for p in products])
+        df.set_index(Product.CSV_FIELD_NAMES[0], inplace=True)
+        df.to_excel(writer, sheet_name=sitename)
+    writer.close()
 
 
-def writeSavedData(data, siteName, path):
-    with open("{}/{}/old_data.pickle".format(path, siteName), 'wb') as file:
+def writeSavedData(siteName, path, products):
+    data = {}
+    for p in products:
+        data[p.id] = p.price
+
+    with open("{}/{}_old_data.pickle".format(path, siteName), 'wb') as file:
         pickle.dump(data, file)
 
 
 def readSavedData(siteName, path):
-    with open("{}/{}/old_data.pickle".format(path, siteName), 'rb') as file:
-        return pickle.load(file)
+    try:
+        with open("{}/{}_old_data.pickle".format(path, siteName), 'rb') as file:
+            return pickle.load(file)
+    except:
+        return {}

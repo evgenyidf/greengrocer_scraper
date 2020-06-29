@@ -1,6 +1,5 @@
 from bidi.algorithm import get_display
 
-
 class Product:
 
     CSV_FIELD_NAMES = [
@@ -41,7 +40,7 @@ class Product:
             self.isNew
         ))
 
-    def to_csv(self):
+    def to_dict(self):
         return {
             'id': self.id,
             'name': self.name,
@@ -55,3 +54,4 @@ class Product:
             'isForSale': self.isForSale,
             'image': self.image
         }
+
