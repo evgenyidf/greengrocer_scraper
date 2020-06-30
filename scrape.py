@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
-import pandas as pd
 import re
-from pathlib import Path
-from bidi.algorithm import get_display
-import csv
 import json
-import time
 import atexit
 from urllib.request import urlopen
 from bs4 import BeautifulSoup, element
 from bekfar.products import Product as prod
 from bekfar import utils
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 
 OLD_DATA = {}
 WEBDRIVER_PATH = r'./chromedriver'
 DATA_PATH = './DATA'
 browser = webdriver.Chrome(WEBDRIVER_PATH)
-
 productList = {}
 
 URLS = {
@@ -44,6 +37,7 @@ URLS = {
         'מזרחי':           'https://www.moshavnik.co.il/asia?up',
         'אפיה':            'https://www.moshavnik.co.il/mtphhv?up'
         },
+
     'carmella': {
         'ירקות':         'https://www.carmella.co.il/product-category/%d7%99%d7%a8%d7%a7%d7%95%d7%aa/',
         'פירות':         'https://www.carmella.co.il/product-category/%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a8%d7%90%d7%a9%d7%99/',
@@ -59,6 +53,7 @@ URLS = {
         'משקאות':       'https://www.carmella.co.il/product-category/%d7%9e%d7%a9%d7%a7%d7%90%d7%95%d7%aa/',
         'פרחים':        'https://www.carmella.co.il/product-category/%d7%a4%d7%a8%d7%97%d7%99%d7%9d/'
     },
+
     'alehonline': {
         'חסות_ועלים': "https://www.alehonline.co.il/cat/5/leaves-lettuces",
         'עגבניות_ופלפלים': "https://www.alehonline.co.il/cat/62/tomatos-and-peppers",
@@ -76,6 +71,7 @@ URLS = {
         'הבד': "https://www.alehonline.co.il/cat/111/olive-oil",
         'המזווה': "https://www.alehonline.co.il/cat/112/pantry"
     },
+
     'noyhasade': {
         'פירות': 'https://noyhasade.co.il/product-category/%d7%94%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
         'ירקות': 'https://noyhasade.co.il/product-category/%d7%94%d7%99%d7%a8%d7%a7%d7%95%d7%aa-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
@@ -89,7 +85,7 @@ URLS = {
 }
 
 
-def getMoshavnikScraped(category, URL, path=DATA_PATH):
+def moshavnik(category, URL, path=DATA_PATH):
     soup = BeautifulSoup(urlopen(URL), 'lxml')
     all_products = soup.find_all('div', {"class": 'product'})
 
@@ -111,7 +107,7 @@ def getMoshavnikScraped(category, URL, path=DATA_PATH):
             product.isForSale = int(item.findAll('div', {"class": "saleInner"})[0].findAll('img')[0]['src'].endswith('icons03.png'))
         except:
             None
-        try:    
+        try:
             product.isNew = int(item.findAll('div', {"class": "saleInner"})[0].findAll('img')[0]['src'].endswith('icons04.png'))
         except:
             None
@@ -125,8 +121,7 @@ def getMoshavnikScraped(category, URL, path=DATA_PATH):
         productList['moshavnik'].append(product)
 
 
-
-def getAlehonlineScraped(category, URL, path=DATA_PATH):
+def alehonline(category, URL, path=DATA_PATH):
     soup = BeautifulSoup(urlopen(URL), 'lxml')
     all_products = soup.find_all('a', {"class": 'prodLink'})
 
@@ -152,7 +147,7 @@ def getAlehonlineScraped(category, URL, path=DATA_PATH):
             product.isForSale = int(item.findAll('div', {"class": "saleInner"})[0].findAll('img')[0]['src'].endswith('icons03.png'))
         except:
             None
-        
+
         if product.id in OLD_DATA and OLD_DATA[product.id] != product.price:
             product.old_price = OLD_DATA[product.id]
             product.print_terminal()
@@ -160,8 +155,7 @@ def getAlehonlineScraped(category, URL, path=DATA_PATH):
         productList['alehonline'].append(product)
 
 
-
-def getNoyhasadeScraped(category, URL, path=DATA_PATH):
+def noyhasade(category, URL, path=DATA_PATH):
     soup = BeautifulSoup(urlopen(URL), 'lxml')
     all_products = soup.find_all('li', {"class": 'product'})
 
@@ -229,9 +223,7 @@ def getNoyhasadeScraped(category, URL, path=DATA_PATH):
         productList['noyhasade'].append(product)
 
 
-
-def getCarmellaScraped(category, URL, path=DATA_PATH):
-    # writer = utils.openCsvWrite('carmella', path)
+def carmella(category, URL, path=DATA_PATH):
     browsedData = utils.browseWithAutoLoading(URL, browser)
     all_products = browsedData.find_all('div', {"class": 'product_wrap'})
 
@@ -268,36 +260,14 @@ def closeAll():
 if __name__ == "__main__":
     atexit.register(closeAll)
 
-    siteURLS = URLS['noyhasade']
-    productList['noyhasade'] = []
-    OLD_DATA = utils.readSavedData('noyhasade', path=DATA_PATH)
-    for category in siteURLS:
-        print('--------- {}::{}'.format('noyhasade',category))
-        getNoyhasadeScraped(category, siteURLS[category])
-    utils.writeSavedData('noyhasade', DATA_PATH, productList['noyhasade'])
-
-    siteURLS = URLS['moshavnik']
-    productList['moshavnik'] = []
-    OLD_DATA = utils.readSavedData('moshavnik', path=DATA_PATH)
-    for category in siteURLS:
-        print('--------- {}::{}'.format('moshavnik',category))
-        getMoshavnikScraped(category, siteURLS[category])
-    utils.writeSavedData('moshavnik', DATA_PATH, productList['moshavnik'])
-
-    siteURLS = URLS['alehonline']
-    productList['alehonline'] = []
-    OLD_DATA = utils.readSavedData('alehonline', path=DATA_PATH)
-    for category in siteURLS:
-        print('--------- {}::{}'.format('alehonline',category))
-        getAlehonlineScraped(category, siteURLS[category])
-    utils.writeSavedData('alehonline', DATA_PATH, productList['alehonline'])
-
-    siteURLS = URLS['carmella']
-    productList['carmella'] = []
-    OLD_DATA = utils.readSavedData('carmella', path=DATA_PATH)
-    for category in siteURLS:
-        print('--------- {}::{}'.format('carmella',category))
-        getCarmellaScraped(category, siteURLS[category])
-    utils.writeSavedData('carmella', DATA_PATH, productList['carmella'])
+    for sitename in URLS:
+        siteURLS = URLS[sitename]
+        productList[sitename] = []
+        OLD_DATA = utils.readSavedData(sitename, path=DATA_PATH)
+        for category in siteURLS:
+            print('--------- {}::{}'.format(sitename, category))
+            method = eval(sitename)
+            method(category, siteURLS[category])
+        utils.writeSavedData(sitename, DATA_PATH, productList[sitename])
 
     utils.writeExcel(DATA_PATH, productList)

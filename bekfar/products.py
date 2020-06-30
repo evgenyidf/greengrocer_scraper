@@ -1,5 +1,3 @@
-from bidi.algorithm import get_display
-
 class Product:
 
     CSV_FIELD_NAMES = [
@@ -30,14 +28,11 @@ class Product:
         self.image = ''
 
     def print_terminal(self):
-        print("id: {}, name: '{}', sub_cat: '{}', price: {}, old_price: {}, units: {}, isNew: {}".format(
-            self.id,
-            get_display(self.name),
-            get_display(self.sub_category),
+        print("name: '{}', price: {}, old_price: {}, units: {}".format(
+            self.name,
             self.price,
             self.old_price,
-            get_display(self.unit_type),
-            self.isNew
+            self.unit_type
         ))
 
     def to_dict(self):
@@ -54,4 +49,3 @@ class Product:
             'isForSale': self.isForSale,
             'image': self.image
         }
-

@@ -1,8 +1,5 @@
-from urllib.request import urlopen
-from bs4 import BeautifulSoup, element
+from bs4 import BeautifulSoup
 import pandas as pd
-
-from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import time
 import csv
@@ -34,18 +31,12 @@ def openCsvWrite(website, path):
     return writer
 
 
-# def writeExcel(siteName, path):
-#     writer = pd.ExcelWriter("{}/{}/all_{}.xlsx".format(path, siteName, siteName), engine='xlsxwriter')
-#     for key in URLS[siteName]:
-#         df = pd.read_csv("{}/{}/{}.csv".format(path, siteName, key))
-#         df.set_index('Product_ID', inplace=True)
-#         df.to_excel(writer, sheet_name=key)
-#     writer.close()
 def writeExcel(path, productList):
     date = datetime.now().strftime("%d-%m-%Y")
-    writer = pd.ExcelWriter("{}/all_prices_{}.xlsx".format(path,date), engine='xlsxwriter')
+    writer = pd.ExcelWriter("{}/all_prices_{}.xlsx".format(path, date), engine='xlsxwriter')
     for sitename in productList:
         products = productList[sitename]
+        # df = pd.read_csv("{}/{}/{}.csv".format(path, siteName, key))
         df = pd.DataFrame.from_records([p.to_dict() for p in products])
         df.set_index(Product.CSV_FIELD_NAMES[0], inplace=True)
         df.to_excel(writer, sheet_name=sitename)
