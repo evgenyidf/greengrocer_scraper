@@ -14,6 +14,13 @@ DATA_PATH = './DATA'
 browser = webdriver.Chrome(WEBDRIVER_PATH)
 productList = {}
 
+heSiteName = {
+    "moshavnik": 'מושבניק',
+    "carmella": 'כרמלה',
+    "alehonline": 'עלה הביתה',
+    "noyhasade": 'נוי השדה',
+}
+
 URLS = {
     'moshavnik': {
         'ביצים':           'https://www.moshavnik.co.il/%D7%91%D7%99%D7%A6%D7%99%D7%9D?up',
@@ -91,6 +98,9 @@ def moshavnik(category, URL, path=DATA_PATH):
 
     for item in all_products:
         product = prod(item['data-id'])
+        if product in productList['moshavnik']:
+            continue
+
         product_block = item.findAll('div', {"class": "name-wrap"})[0]
 
         product.name = str(product_block.findAll('span', {"class": "bold"})[0].contents[0]).strip()
@@ -127,6 +137,9 @@ def alehonline(category, URL, path=DATA_PATH):
 
     for item in all_products:
         product = prod(re.search('.*/([0-9]+)/.*', item['href']).group(1))
+        if product in productList['alehonline']:
+            continue
+
         product_block = item.find_parent()
         product.name = product_block.findAll('div', {"class": "prodPrice"})[0].contents[0]
 
@@ -161,6 +174,8 @@ def noyhasade(category, URL, path=DATA_PATH):
 
     for item in all_products:
         product = prod(item.findAll('product_archive')[0][':product_id'])
+        if product in productList['noyhasade']:
+            continue
 
         try:
             if type(item.findAll('h2', {"class": "woocommerce-loop-product__title"})[0].contents[0]) is element.NavigableString:
@@ -229,6 +244,8 @@ def carmella(category, URL, path=DATA_PATH):
 
     for item in all_products:
         product = prod(item['data-product-id'])
+        if product in productList['carmella']:
+            continue
         product_block = item.find_all('div', {"class": 'prod_bottom'})[0]
         product.name = product_block.find_all('h3', {"class": 'pr_title'})[0].contents[0]
         product.category = category
@@ -265,7 +282,7 @@ if __name__ == "__main__":
         productList[sitename] = []
         OLD_DATA = utils.readSavedData(sitename, path=DATA_PATH)
         for category in siteURLS:
-            print('--------- {}::{}'.format(sitename, category))
+            print('{} --- {}'.format(heSiteName[sitename], category))
             method = eval(sitename)
             method(category, siteURLS[category])
         utils.writeSavedData(sitename, DATA_PATH, productList[sitename])

@@ -4,3 +4,4 @@ chromedriver
 jira.csv
 *.tgz
 bekfar/__pycache*
+bekfar/__pycache__/*

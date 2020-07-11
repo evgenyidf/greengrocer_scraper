@@ -1,3 +1,6 @@
+import emoji
+
+
 class Product:
 
     CSV_FIELD_NAMES = [
@@ -27,13 +30,22 @@ class Product:
         self.isForSale = False
         self.image = ''
 
+    def __eq__(self, other):
+        if self.id == other.id:
+            return True
+        return False
+
     def print_terminal(self):
-        print("name: '{}', price: {}, old_price: {}, units: {}".format(
+        if float(self.old_price) < float(self.price):
+            sign = ':red_triangle_pointed_up:'
+        else:
+            sign = ':down_arrow:'
+        print(emoji.emojize("{}, לפני:{} אחרי:{}, {}".format(
             self.name,
-            self.price,
             self.old_price,
-            self.unit_type
-        ))
+            self.price,
+            sign
+        )))
 
     def to_dict(self):
         return {

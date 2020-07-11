@@ -9,3 +9,4 @@ wordcloud
 selenium
 multiexit
 python-bidi
+emoji
