@@ -43,18 +43,37 @@ def writeExcel(path, productList):
     writer.close()
 
 
-def writeSavedData(siteName, path, products):
+def writePriceData(siteName, path, products):
     data = {}
     for p in products:
         data[p.id] = p.price
 
-    with open("{}/{}_old_data.pickle".format(path, siteName), 'wb') as file:
+    with open("{}/{}_old_price.pickle".format(path, siteName), 'wb') as file:
         pickle.dump(data, file)
 
 
-def readSavedData(siteName, path):
+def readPriceData(siteName, path):
     try:
-        with open("{}/{}_old_data.pickle".format(path, siteName), 'rb') as file:
+        with open("{}/{}_old_price.pickle".format(path, siteName), 'rb') as file:
             return pickle.load(file)
     except:
         return {}
+
+
+def writeAllData(path, productList):
+    with open("{}/all_data.pickle".format(path), 'wb') as file:
+        for sitename in productList:
+            pickle.dump(sitename, file)
+            pickle.dump(productList[sitename], file)
+
+
+def readAllData(path):
+    productList = {}
+    with open("{}/all_data.pickle".format(path), 'rb') as file:
+        while True:
+            try:
+                sitename = pickle.load(file)
+                productList[sitename] = pickle.load(file)
+            except EOFError:
+                break
+    return productList

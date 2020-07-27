@@ -7,6 +7,12 @@ from bs4 import BeautifulSoup, element
 from bekfar.products import Product as prod
 from bekfar import utils
 from selenium import webdriver
+from difflib import SequenceMatcher
+from bidi.algorithm import get_display
+import sys
+
+# to avoid Hitting Maximum Recursion Depth Using Pickle
+sys.setrecursionlimit(0x100000)
 
 OLD_DATA = {}
 WEBDRIVER_PATH = r'./chromedriver'
@@ -19,47 +25,65 @@ heSiteName = {
     "carmella": 'כרמלה',
     "alehonline": 'עלה הביתה',
     "noyhasade": 'נוי השדה',
+    "taritari": 'טרי-טרי'
 }
 
 URLS = {
+    'taritari': {
+        'ירקות':         'https://tari-tari.co.il/product-category/vegetables/',
+        'ירק':           'https://tari-tari.co.il/product-category/greens/',
+        'פירות':         'https://tari-tari.co.il/product-category/fruits',
+        'נבטים_פיטריות':   'https://tari-tari.co.il/product-category/sprouts-and-mushrooms/'
+    },
     'moshavnik': {
-        'ביצים':           'https://www.moshavnik.co.il/%D7%91%D7%99%D7%A6%D7%99%D7%9D?up',
         'ירקות_גינה':      'https://www.moshavnik.co.il/store/veg-garden?up',
         'ירק':            'https://www.moshavnik.co.il/store/veg1?up',
         'פרות':            'https://www.moshavnik.co.il/store/fruits01?up',
-        'לקט':            'https://www.moshavnik.co.il/kaluf?up',
+        # 'לקט':            'https://www.moshavnik.co.il/kaluf?up',
         'פיטריות':          'https://www.moshavnik.co.il/%D7%A4%D7%98%D7%A8%D7%99%D7%95%D7%AA?up',
-        'תבלינים':         'https://www.moshavnik.co.il/%D7%AA%D7%91%D7%9C%D7%99%D7%A0%D7%99%D7%9D?up',
-        'פיצוחים_לא_קלוי':  'https://www.moshavnik.co.il/%D7%9C%D7%90_%D7%A7%D7%9C%D7%95%D7%99?up',
-        'פיצוחים_קלוי':     'https://www.moshavnik.co.il/%D7%A4%D7%99%D7%A6%D7%95%D7%97%D7%99%D7%9D?up',
-        'פירות_יבשים':      'https://www.moshavnik.co.il/%D7%99%D7%91%D7%A9%D7%99%D7%9D?up',
-        'חדפעמי':         'https://www.moshavnik.co.il/%D7%97%D7%93%20%D7%A4%D7%A2%D7%9E%D7%99?up',
-        'יין':             'https://www.moshavnik.co.il/drinks?up',
-        'שתיה_קלה':       'https://www.moshavnik.co.il/%D7%A9%D7%AA%D7%99%D7%99%D7%94?up',
-        'מתוקים':         'https://www.moshavnik.co.il/%D7%9E%D7%AA%D7%95%D7%A7%D7%99%D7%9D?up',
-        'שימורים':         'https://www.moshavnik.co.il/%D7%A9%D7%99%D7%9E%D7%95%D7%A8%D7%99%D7%9D?up',
-        'מעדניה_שמן':      'https://www.moshavnik.co.il/shemen?up',
-        'מעדניה':          'https://www.moshavnik.co.il/store/%D7%9E%D7%A2%D7%93%D7%A0%D7%99%D7%99%D7%94?up',
-        'איטלקי':          'https://www.moshavnik.co.il/italy?up',
-        'מזרחי':           'https://www.moshavnik.co.il/asia?up',
-        'אפיה':            'https://www.moshavnik.co.il/mtphhv?up'
+        # 'תבלינים':         'https://www.moshavnik.co.il/%D7%AA%D7%91%D7%9C%D7%99%D7%A0%D7%99%D7%9D?up',
+        # 'פיצוחים_לא_קלוי':  'https://www.moshavnik.co.il/%D7%9C%D7%90_%D7%A7%D7%9C%D7%95%D7%99?up',
+        # 'פיצוחים_קלוי':     'https://www.moshavnik.co.il/%D7%A4%D7%99%D7%A6%D7%95%D7%97%D7%99%D7%9D?up',
+        # 'פירות_יבשים':      'https://www.moshavnik.co.il/%D7%99%D7%91%D7%A9%D7%99%D7%9D?up',
+        # 'חדפעמי':         'https://www.moshavnik.co.il/%D7%97%D7%93%20%D7%A4%D7%A2%D7%9E%D7%99?up',
+        # 'יין':             'https://www.moshavnik.co.il/drinks?up',
+        'ביצים':           'https://www.moshavnik.co.il/%D7%91%D7%99%D7%A6%D7%99%D7%9D?up'
+        # 'שתיה_קלה':       'https://www.moshavnik.co.il/%D7%A9%D7%AA%D7%99%D7%99%D7%94?up',
+        # 'מתוקים':         'https://www.moshavnik.co.il/%D7%9E%D7%AA%D7%95%D7%A7%D7%99%D7%9D?up',
+        # 'שימורים':         'https://www.moshavnik.co.il/%D7%A9%D7%99%D7%9E%D7%95%D7%A8%D7%99%D7%9D?up',
+        # 'מעדניה_שמן':      'https://www.moshavnik.co.il/shemen?up',
+        # 'מעדניה':          'https://www.moshavnik.co.il/store/%D7%9E%D7%A2%D7%93%D7%A0%D7%99%D7%99%D7%94?up',
+        # 'איטלקי':          'https://www.moshavnik.co.il/italy?up',
+        # 'מזרחי':           'https://www.moshavnik.co.il/asia?up',
+        # 'אפיה':            'https://www.moshavnik.co.il/mtphhv?up'
         },
-
-    'carmella': {
-        'ירקות':         'https://www.carmella.co.il/product-category/%d7%99%d7%a8%d7%a7%d7%95%d7%aa/',
-        'פירות':         'https://www.carmella.co.il/product-category/%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a8%d7%90%d7%a9%d7%99/',
-        'בסטה איטליה':   'https://www.carmella.co.il/product-category/%d7%91%d7%a1%d7%98%d7%94-%d7%a2%d7%95%d7%9c%d7%9e%d7%99%d7%aa/',
-        'המזווה':        'https://www.carmella.co.il/product-category/%d7%94%d7%9e%d7%96%d7%95%d7%95%d7%94/',
-        'מעדניית לוינסקי': 'https://www.carmella.co.il/product-category/%d7%9e%d7%a2%d7%93%d7%a0%d7%99%d7%99%d7%aa-%d7%9c%d7%95%d7%99%d7%a0%d7%a1%d7%a7%d7%99/',
-        'למטבח שלך':   'https://www.carmella.co.il/product-category/%d7%94%d7%9e%d7%98%d7%91%d7%97-%d7%a9%d7%9c%d7%9a/',
-        'גבינות-ועוד':    'https://www.carmella.co.il/product-category/%d7%92%d7%91%d7%99%d7%a0%d7%95%d7%aa-%d7%95%d7%a2%d7%95%d7%93/',
-        'Bakery':       'https://www.carmella.co.il/product-category/bakery/',
-        'ללא גלוטן':     'https://www.carmella.co.il/product-category/%d7%9c%d7%9c%d7%90-%d7%92%d7%9c%d7%95%d7%98%d7%9f/',
-        'אורגני':        'https://www.carmella.co.il/product-category/%d7%90%d7%95%d7%a8%d7%92%d7%a0%d7%99/',
-        'ילדודס':        'https://www.carmella.co.il/product-category/%d7%99%d7%9c%d7%93%d7%95%d7%93%d7%a1/',
-        'משקאות':       'https://www.carmella.co.il/product-category/%d7%9e%d7%a9%d7%a7%d7%90%d7%95%d7%aa/',
-        'פרחים':        'https://www.carmella.co.il/product-category/%d7%a4%d7%a8%d7%97%d7%99%d7%9d/'
+    'noyhasade': {
+        'פירות': 'https://noyhasade.co.il/product-category/%d7%94%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
+        'ירקות': 'https://noyhasade.co.il/product-category/%d7%94%d7%99%d7%a8%d7%a7%d7%95%d7%aa-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
+        'עשבי תיבול': 'https://noyhasade.co.il/product-category/%d7%a2%d7%a9%d7%91%d7%99-%d7%aa%d7%99%d7%91%d7%95%d7%9c/'
+        # 'מהדרין': 'https://noyhasade.co.il/product-category/%d7%a2%d7%a9%d7%91%d7%99-%d7%aa%d7%99%d7%91%d7%95%d7%9c-%d7%9e%d7%94%d7%93%d7%a8%d7%99%d7%9f/',
+        # 'המיוחדים': 'https://noyhasade.co.il/product-category/%d7%94%d7%9e%d7%99%d7%95%d7%97%d7%93%d7%99%d7%9d-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
+        # 'מגשי אירוח': 'https://noyhasade.co.il/product-category/%d7%9e%d7%92%d7%a9%d7%99-%d7%9e%d7%a1%d7%99%d7%91%d7%95%d7%aa/',
+        # 'המעדניה': 'https://noyhasade.co.il/product-category/%d7%9e%d7%a2%d7%93%d7%a0%d7%99%d7%94/',
+        # 'שטראוס': 'https://noyhasade.co.il/product-category/strauss/'
     },
+
+    # 'carmella': {
+    #     'ירקות':         'https://www.carmella.co.il/product-category/%d7%99%d7%a8%d7%a7%d7%95%d7%aa/',
+    #     'פירות':         'https://www.carmella.co.il/product-category/%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a8%d7%90%d7%a9%d7%99/',
+    #     'ביצים':             'https://www.carmella.co.il/product-category/%D7%9E%D7%A2%D7%93%D7%A0%D7%99%D7%99%D7%AA-%D7%9C%D7%95%D7%99%D7%A0%D7%A1%D7%A7%D7%99/%D7%91%D7%99%D7%A6%D7%99%D7%9D'
+    #     # 'בסטה איטליה':   'https://www.carmella.co.il/product-category/%d7%91%d7%a1%d7%98%d7%94-%d7%a2%d7%95%d7%9c%d7%9e%d7%99%d7%aa/',
+    #     # 'המזווה':        'https://www.carmella.co.il/product-category/%d7%94%d7%9e%d7%96%d7%95%d7%95%d7%94/',
+    #     # 'מעדניית לוינסקי': 'https://www.carmella.co.il/product-category/%d7%9e%d7%a2%d7%93%d7%a0%d7%99%d7%99%d7%aa-%d7%9c%d7%95%d7%99%d7%a0%d7%a1%d7%a7%d7%99/',
+    #     # 'למטבח שלך':   'https://www.carmella.co.il/product-category/%d7%94%d7%9e%d7%98%d7%91%d7%97-%d7%a9%d7%9c%d7%9a/',
+    #     # 'גבינות-ועוד':    'https://www.carmella.co.il/product-category/%d7%92%d7%91%d7%99%d7%a0%d7%95%d7%aa-%d7%95%d7%a2%d7%95%d7%93/',
+    #     # 'Bakery':       'https://www.carmella.co.il/product-category/bakery/',
+    #     # 'ללא גלוטן':     'https://www.carmella.co.il/product-category/%d7%9c%d7%9c%d7%90-%d7%92%d7%9c%d7%95%d7%98%d7%9f/',
+    #     # 'אורגני':        'https://www.carmella.co.il/product-category/%d7%90%d7%95%d7%a8%d7%92%d7%a0%d7%99/',
+    #     # 'ילדודס':        'https://www.carmella.co.il/product-category/%d7%99%d7%9c%d7%93%d7%95%d7%93%d7%a1/',
+    #     # 'משקאות':       'https://www.carmella.co.il/product-category/%d7%9e%d7%a9%d7%a7%d7%90%d7%95%d7%aa/',
+    #     # 'פרחים':        'https://www.carmella.co.il/product-category/%d7%a4%d7%a8%d7%97%d7%99%d7%9d/'
+    # },
 
     'alehonline': {
         'חסות_ועלים': "https://www.alehonline.co.il/cat/5/leaves-lettuces",
@@ -72,22 +96,13 @@ URLS = {
         'פטריות': "https://www.alehonline.co.il/cat/65/mushrooms",
         'נבטים_פרחי_מאכל_ועלי_מיקרו': "https://www.alehonline.co.il/cat/68/micro-sprouts-and-flowers",
         'פירות': "https://www.alehonline.co.il/cat/66/fruits",
-        'יקב_והמבשלה': "https://www.alehonline.co.il/cat/108/alcohol",
-        'המאפיה': "https://www.alehonline.co.il/cat/109/beard",
-        'המחלבה': "https://www.alehonline.co.il/cat/110/dairy",
-        'הבד': "https://www.alehonline.co.il/cat/111/olive-oil",
-        'המזווה': "https://www.alehonline.co.il/cat/112/pantry"
-    },
-
-    'noyhasade': {
-        'פירות': 'https://noyhasade.co.il/product-category/%d7%94%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
-        'ירקות': 'https://noyhasade.co.il/product-category/%d7%94%d7%99%d7%a8%d7%a7%d7%95%d7%aa-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
-        'עשבי תיבול': 'https://noyhasade.co.il/product-category/%d7%a2%d7%a9%d7%91%d7%99-%d7%aa%d7%99%d7%91%d7%95%d7%9c/',
-        'מהדרין': 'https://noyhasade.co.il/product-category/%d7%a2%d7%a9%d7%91%d7%99-%d7%aa%d7%99%d7%91%d7%95%d7%9c-%d7%9e%d7%94%d7%93%d7%a8%d7%99%d7%9f/',
-        'המיוחדים': 'https://noyhasade.co.il/product-category/%d7%94%d7%9e%d7%99%d7%95%d7%97%d7%93%d7%99%d7%9d-%d7%a9%d7%9c-%d7%a0%d7%95%d7%99/',
-        'מגשי אירוח': 'https://noyhasade.co.il/product-category/%d7%9e%d7%92%d7%a9%d7%99-%d7%9e%d7%a1%d7%99%d7%91%d7%95%d7%aa/',
-        'המעדניה': 'https://noyhasade.co.il/product-category/%d7%9e%d7%a2%d7%93%d7%a0%d7%99%d7%94/',
-        'שטראוס': 'https://noyhasade.co.il/product-category/strauss/'
+        'מיוחדים': "https://www.alehonline.co.il/cat/69/alehonline-specials"
+        # 'יקב_והמבשלה': "https://www.alehonline.co.il/cat/108/alcohol",
+        # 'המאפיה': "https://www.alehonline.co.il/cat/109/beard",
+        # 'המחלבה': "https://www.alehonline.co.il/cat/110/dairy",
+        # 'תבלינים':  "https://www.alehonline.co.il/cat/114/spice-market",
+        # 'הבד': "https://www.alehonline.co.il/cat/111/olive-oil",
+        # 'המזווה': "https://www.alehonline.co.il/cat/112/pantry"
     }
 }
 
@@ -270,8 +285,42 @@ def carmella(category, URL, path=DATA_PATH):
         productList['carmella'].append(product)
 
 
+def taritari(category, URL, path=DATA_PATH):
+    soup = BeautifulSoup(urlopen(URL), 'lxml')
+    all_products = soup.find_all('li', {"class": 'product'})
+
+    for item in all_products:
+        product = prod(item.findAll('li', {"class": "btn-wrap clr"})[0].contents[0]["data-product_id"])
+        if product in productList['taritari']:
+            continue
+
+        product_block = item.findAll('div', {"class": "product-inner clr"})[0]
+        product.name = str(product_block.findAll('li', {"class": "title"})[0].contents[0].contents[0]).strip()
+
+        try:
+            product.description = product_block.findAll('div', {"class": "yith-wcbm-badge-text"})[0].contents[0].strip()
+        except:
+            None
+
+        product.category = category
+        # product.sub_category = item.find_parents('div', {"class": 'subcat_with_items'})[0]['name']
+        product.price = product_block.findAll('span', {"class": "woocommerce-Price-amount"})[0].contents[1].strip()
+        product.unit_type = item.findAll('span', {"class": "ivpa_text"})[0].contents[0].strip()
+        product.image = product_block.findAll('img')[0]['src']
+
+        if product.id in OLD_DATA and OLD_DATA[product.id] != product.price:
+            product.old_price = OLD_DATA[product.id]
+            product.print_terminal()
+
+        productList['taritari'].append(product)
+
+
 def closeAll():
     browser.close()
+
+
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 
 if __name__ == "__main__":
@@ -280,11 +329,25 @@ if __name__ == "__main__":
     for sitename in URLS:
         siteURLS = URLS[sitename]
         productList[sitename] = []
-        OLD_DATA = utils.readSavedData(sitename, path=DATA_PATH)
+        OLD_DATA = utils.readPriceData(sitename, path=DATA_PATH)
         for category in siteURLS:
             print('{} --- {}'.format(heSiteName[sitename], category))
             method = eval(sitename)
             method(category, siteURLS[category])
-        utils.writeSavedData(sitename, DATA_PATH, productList[sitename])
-
+        utils.writePriceData(sitename, DATA_PATH, productList[sitename])
     utils.writeExcel(DATA_PATH, productList)
+    utils.writeAllData(DATA_PATH, productList)
+
+    # productList = {}
+    # productList = utils.readAllData(DATA_PATH)
+
+    # for tari in productList['taritari']:
+    #     for msvk in productList['moshavnik']:
+    #         if similar(tari.name, msvk.name) > 0.8:
+    #             print("{} <--> {}".format(get_display(tari.name), get_display(msvk.name)), end='\n')
+    #     for nhsd in productList['noyhasade']:
+    #         if similar(tari.name, nhsd.name) > 0.8:
+    #             print("{} <--> {}".format(get_display(tari.name), get_display(nhsd.name)), end='\n')
+    #     for aleh in productList['alehonline']:
+    #         if similar(tari.name, aleh.name) > 0.8:
+    #             print("{} <--> {}".format(get_display(tari.name), get_display(aleh.name)), end='\n')
