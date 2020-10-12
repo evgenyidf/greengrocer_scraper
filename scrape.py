@@ -29,6 +29,22 @@ heSiteName = {
 }
 
 URLS = {
+    'carmella': {
+        'ירקות':         'https://www.carmella.co.il/product-category/%d7%99%d7%a8%d7%a7%d7%95%d7%aa/',
+        'פירות':         'https://www.carmella.co.il/product-category/%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a8%d7%90%d7%a9%d7%99/',
+        'ביצים':             'https://www.carmella.co.il/product-category/%D7%9E%D7%A2%D7%93%D7%A0%D7%99%D7%99%D7%AA-%D7%9C%D7%95%D7%99%D7%A0%D7%A1%D7%A7%D7%99/%D7%91%D7%99%D7%A6%D7%99%D7%9D'
+    #     # 'בסטה איטליה':   'https://www.carmella.co.il/product-category/%d7%91%d7%a1%d7%98%d7%94-%d7%a2%d7%95%d7%9c%d7%9e%d7%99%d7%aa/',
+    #     # 'המזווה':        'https://www.carmella.co.il/product-category/%d7%94%d7%9e%d7%96%d7%95%d7%95%d7%94/',
+    #     # 'מעדניית לוינסקי': 'https://www.carmella.co.il/product-category/%d7%9e%d7%a2%d7%93%d7%a0%d7%99%d7%99%d7%aa-%d7%9c%d7%95%d7%99%d7%a0%d7%a1%d7%a7%d7%99/',
+    #     # 'למטבח שלך':   'https://www.carmella.co.il/product-category/%d7%94%d7%9e%d7%98%d7%91%d7%97-%d7%a9%d7%9c%d7%9a/',
+    #     # 'גבינות-ועוד':    'https://www.carmella.co.il/product-category/%d7%92%d7%91%d7%99%d7%a0%d7%95%d7%aa-%d7%95%d7%a2%d7%95%d7%93/',
+    #     # 'Bakery':       'https://www.carmella.co.il/product-category/bakery/',
+    #     # 'ללא גלוטן':     'https://www.carmella.co.il/product-category/%d7%9c%d7%9c%d7%90-%d7%92%d7%9c%d7%95%d7%98%d7%9f/',
+    #     # 'אורגני':        'https://www.carmella.co.il/product-category/%d7%90%d7%95%d7%a8%d7%92%d7%a0%d7%99/',
+    #     # 'ילדודס':        'https://www.carmella.co.il/product-category/%d7%99%d7%9c%d7%93%d7%95%d7%93%d7%a1/',
+    #     # 'משקאות':       'https://www.carmella.co.il/product-category/%d7%9e%d7%a9%d7%a7%d7%90%d7%95%d7%aa/',
+    #     # 'פרחים':        'https://www.carmella.co.il/product-category/%d7%a4%d7%a8%d7%97%d7%99%d7%9d/'
+    },
     'taritari': {
         'ירקות':         'https://tari-tari.co.il/product-category/vegetables/',
         'ירק':           'https://tari-tari.co.il/product-category/greens/',
@@ -47,10 +63,10 @@ URLS = {
         # 'פירות_יבשים':      'https://www.moshavnik.co.il/%D7%99%D7%91%D7%A9%D7%99%D7%9D?up',
         # 'חדפעמי':         'https://www.moshavnik.co.il/%D7%97%D7%93%20%D7%A4%D7%A2%D7%9E%D7%99?up',
         # 'יין':             'https://www.moshavnik.co.il/drinks?up',
-        'ביצים':           'https://www.moshavnik.co.il/%D7%91%D7%99%D7%A6%D7%99%D7%9D?up'
+        'ביצים':           'https://www.moshavnik.co.il/%D7%91%D7%99%D7%A6%D7%99%D7%9D?up',
         # 'שתיה_קלה':       'https://www.moshavnik.co.il/%D7%A9%D7%AA%D7%99%D7%99%D7%94?up',
         # 'מתוקים':         'https://www.moshavnik.co.il/%D7%9E%D7%AA%D7%95%D7%A7%D7%99%D7%9D?up',
-        # 'שימורים':         'https://www.moshavnik.co.il/%D7%A9%D7%99%D7%9E%D7%95%D7%A8%D7%99%D7%9D?up',
+        'שימורים':         'https://www.moshavnik.co.il/%D7%A9%D7%99%D7%9E%D7%95%D7%A8%D7%99%D7%9D?up'
         # 'מעדניה_שמן':      'https://www.moshavnik.co.il/shemen?up',
         # 'מעדניה':          'https://www.moshavnik.co.il/store/%D7%9E%D7%A2%D7%93%D7%A0%D7%99%D7%99%D7%94?up',
         # 'איטלקי':          'https://www.moshavnik.co.il/italy?up',
@@ -67,24 +83,6 @@ URLS = {
         # 'המעדניה': 'https://noyhasade.co.il/product-category/%d7%9e%d7%a2%d7%93%d7%a0%d7%99%d7%94/',
         # 'שטראוס': 'https://noyhasade.co.il/product-category/strauss/'
     },
-
-    # 'carmella': {
-    #     'ירקות':         'https://www.carmella.co.il/product-category/%d7%99%d7%a8%d7%a7%d7%95%d7%aa/',
-    #     'פירות':         'https://www.carmella.co.il/product-category/%d7%a4%d7%99%d7%a8%d7%95%d7%aa-%d7%a8%d7%90%d7%a9%d7%99/',
-    #     'ביצים':             'https://www.carmella.co.il/product-category/%D7%9E%D7%A2%D7%93%D7%A0%D7%99%D7%99%D7%AA-%D7%9C%D7%95%D7%99%D7%A0%D7%A1%D7%A7%D7%99/%D7%91%D7%99%D7%A6%D7%99%D7%9D'
-    #     # 'בסטה איטליה':   'https://www.carmella.co.il/product-category/%d7%91%d7%a1%d7%98%d7%94-%d7%a2%d7%95%d7%9c%d7%9e%d7%99%d7%aa/',
-    #     # 'המזווה':        'https://www.carmella.co.il/product-category/%d7%94%d7%9e%d7%96%d7%95%d7%95%d7%94/',
-    #     # 'מעדניית לוינסקי': 'https://www.carmella.co.il/product-category/%d7%9e%d7%a2%d7%93%d7%a0%d7%99%d7%99%d7%aa-%d7%9c%d7%95%d7%99%d7%a0%d7%a1%d7%a7%d7%99/',
-    #     # 'למטבח שלך':   'https://www.carmella.co.il/product-category/%d7%94%d7%9e%d7%98%d7%91%d7%97-%d7%a9%d7%9c%d7%9a/',
-    #     # 'גבינות-ועוד':    'https://www.carmella.co.il/product-category/%d7%92%d7%91%d7%99%d7%a0%d7%95%d7%aa-%d7%95%d7%a2%d7%95%d7%93/',
-    #     # 'Bakery':       'https://www.carmella.co.il/product-category/bakery/',
-    #     # 'ללא גלוטן':     'https://www.carmella.co.il/product-category/%d7%9c%d7%9c%d7%90-%d7%92%d7%9c%d7%95%d7%98%d7%9f/',
-    #     # 'אורגני':        'https://www.carmella.co.il/product-category/%d7%90%d7%95%d7%a8%d7%92%d7%a0%d7%99/',
-    #     # 'ילדודס':        'https://www.carmella.co.il/product-category/%d7%99%d7%9c%d7%93%d7%95%d7%93%d7%a1/',
-    #     # 'משקאות':       'https://www.carmella.co.il/product-category/%d7%9e%d7%a9%d7%a7%d7%90%d7%95%d7%aa/',
-    #     # 'פרחים':        'https://www.carmella.co.il/product-category/%d7%a4%d7%a8%d7%97%d7%99%d7%9d/'
-    # },
-
     'alehonline': {
         'חסות_ועלים': "https://www.alehonline.co.il/cat/5/leaves-lettuces",
         'עגבניות_ופלפלים': "https://www.alehonline.co.il/cat/62/tomatos-and-peppers",
@@ -212,7 +210,7 @@ def noyhasade(category, URL, path=DATA_PATH):
             try:
                 product.price = search.group(1)
             except:
-                search = re.search('.*span>([0-9.]+)<\/span><\/del>.*span>([0-9.]+).*', price_data)
+                search = re.search('.*span>([0-9.]+).*<\/span><\/del>.*span>([0-9.]+).*', price_data)
                 product.price = search.group(2)
                 product.isForSale = True
                 product.unit_type = ''
@@ -336,7 +334,7 @@ if __name__ == "__main__":
             method(category, siteURLS[category])
         utils.writePriceData(sitename, DATA_PATH, productList[sitename])
     utils.writeExcel(DATA_PATH, productList)
-    utils.writeAllData(DATA_PATH, productList)
+    # utils.writeAllData(DATA_PATH, productList)
 
     # productList = {}
     # productList = utils.readAllData(DATA_PATH)

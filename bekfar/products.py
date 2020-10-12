@@ -40,7 +40,7 @@ class Product:
             sign = ':red_triangle_pointed_up:'
         else:
             sign = ':down_arrow:'
-        print(emoji.emojize("{}, לפני:{} אחרי:{}, {}".format(
+        print(emoji.emojize("{}, {}, {}, {}".format(
             self.name,
             self.old_price,
             self.price,
