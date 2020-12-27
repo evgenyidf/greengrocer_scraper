@@ -3,6 +3,7 @@ numpy
 matplotlib
 seaborn
 bs4
+lxml
 openpyxl
 XlsxWriter
 wordcloud
@@ -10,3 +11,5 @@ selenium
 multiexit
 python-bidi
 emoji
+jupyter
+notebook
