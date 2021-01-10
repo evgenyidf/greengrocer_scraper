@@ -342,7 +342,10 @@ def taritari(category, URL, path=DATA_PATH):
 
         product.category = category
         # product.sub_category = item.find_parents('div', {"class": 'subcat_with_items'})[0]['name']
-        product.price = product_block.findAll('span', {"class": "woocommerce-Price-amount"})[0].contents[1].strip()
+        try:
+            product.price = product_block.findAll('span', {"class": "woocommerce-Price-amount"})[0].contents[1].strip()
+        except:
+            None
         product.unit_type = item.findAll('span', {"class": "ivpa_text"})[0].contents[0].strip()
         product.image = product_block.findAll('img')[0]['src']
 
