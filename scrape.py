@@ -264,7 +264,10 @@ def noyhasade(category, URL, path=DATA_PATH):
         if product in productList['noyhasade']:
             continue
 
-        product.name = item.find_all('div', {"class": 'prod_title'})[0].contents[0].strip()
+        if len(item.find_all('div', {"class": 'prod_title'})) != 0:
+            product.name = item.find_all('div', {"class": 'prod_title'})[0].contents[0].strip()
+        else:
+            product.name = item.find_all('h3', {"class": 'prod_title'})[0].contents[0].strip()
         product.category = category
         # product.sub_category = item.find_parents('div', {"class": 'subcat_with_items'})[0]['name']
         product.price = item['data-product_price'].strip()
